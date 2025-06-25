@@ -16,6 +16,7 @@ interface FootPressureViewProps {
   onViewModeChange: (mode: ViewMode) => void;
   sessionData: SessionData[];
   isRecording: boolean;
+  countdown: number;
   onStartRecording: () => void;
   onStopRecording: () => void;
   isConnected: boolean;
@@ -28,6 +29,7 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
   onViewModeChange,
   sessionData,
   isRecording,
+  countdown,
   onStartRecording,
   onStopRecording,
   isConnected
@@ -52,6 +54,7 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
             <ViewControls viewMode={viewMode} onViewModeChange={onViewModeChange} />
             <RecordingControls
               isRecording={isRecording}
+              countdown={countdown}
               onStartRecording={onStartRecording}
               onStopRecording={onStopRecording}
               isConnected={isConnected}
@@ -94,18 +97,40 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
           </div>
         </div>
 
-        {/* Status Bar */}
+        {/* Enhanced Status Bar with Max Pressure Info */}
         <div className="mt-6 bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <div>
-              Last Update: {footData.lastUpdate.toLocaleTimeString()}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+            <div className="flex flex-col">
+              <span className="text-gray-500 text-xs">Last Update</span>
+              <span className="font-medium text-gray-900">
+                {footData.lastUpdate.toLocaleTimeString()}
+              </span>
             </div>
-            <div>
-              Max Pressure: {Math.max(...footData.sensors.map(s => s.value)).toFixed(1)} kPa
+            
+            <div className="flex flex-col">
+              <span className="text-gray-500 text-xs">Active Sensors</span>
+              <span className="font-medium text-gray-900">
+                {footData.sensors.filter(s => s.value > 0).length}/8
+              </span>
             </div>
-            <div>
-              Active Sensors: {footData.sensors.filter(s => s.value > 0).length}/8
-            </div>
+
+            {footData.maxSensorId && footData.maxSensorValue && (
+              <div className="flex flex-col">
+                <span className="text-gray-500 text-xs">Highest Avg Pressure</span>
+                <span className="font-medium text-blue-600">
+                  {footData.maxSensorId}: {footData.maxSensorValue.toFixed(1)} kPa
+                </span>
+              </div>
+            )}
+
+            {footData.overallMaxPressure && footData.overallMaxSensor && (
+              <div className="flex flex-col">
+                <span className="text-gray-500 text-xs">Peak Pressure (Session)</span>
+                <span className="font-medium text-red-600">
+                  {footData.overallMaxSensor}: {footData.overallMaxPressure.toFixed(1)} kPa
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
