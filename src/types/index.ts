@@ -9,10 +9,6 @@ export interface SensorData {
 export interface FootData {
   sensors: SensorData[];
   lastUpdate: Date;
-  maxSensorId?: string;
-  maxSensorValue?: number;
-  overallMaxPressure?: number;
-  overallMaxSensor?: string;
 }
 
 export interface SessionData {

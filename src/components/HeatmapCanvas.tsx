@@ -52,99 +52,48 @@ export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
       // Draw the foot sole image
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       
-      // Draw pressure sensors with enhanced visibility
+      // Draw pressure sensors
       footData.sensors.forEach((sensor) => {
         const color = getPressureColor(sensor.value);
         const opacity = getPressureOpacity(sensor.value);
         
-        // Draw pressure circle with enhanced gradient effect
-        const gradient = ctx.createRadialGradient(sensor.x, sensor.y, 0, sensor.x, sensor.y, 30);
+        // Draw pressure circle with gradient effect
+        const gradient = ctx.createRadialGradient(sensor.x, sensor.y, 0, sensor.x, sensor.y, 25);
         gradient.addColorStop(0, color);
-        gradient.addColorStop(0.7, color);
-        gradient.addColorStop(1, 'transparent'); // Changed from rgba(255,255,255,0) to transparent
+        gradient.addColorStop(1, 'rgba(255,255,255,0)');
         
         ctx.save();
         ctx.globalAlpha = opacity;
         ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.arc(sensor.x, sensor.y, 30, 0, 2 * Math.PI); // Increased radius from 25 to 30
+        ctx.arc(sensor.x, sensor.y, 25, 0, 2 * Math.PI);
         ctx.fill();
         ctx.restore();
 
-        // Add sensor border with enhanced visibility
-        ctx.strokeStyle = sensor.value > 0 ? '#000' : '#666';
-        ctx.lineWidth = sensor.value > 0 ? 2 : 1;
+        // Add sensor border
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.arc(sensor.x, sensor.y, 25, 0, 2 * Math.PI);
         ctx.stroke();
 
-        // Add sensor label with enhanced background
-        const labelBg = sensor.value > 0 ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.8)';
-        ctx.fillStyle = labelBg;
+        // Add sensor label with background
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.fillRect(sensor.x - 12, sensor.y - 8, 24, 16);
         
-        // Add subtle border to label
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(sensor.x - 12, sensor.y - 8, 24, 16);
-        
-        ctx.fillStyle = sensor.value > 0 ? '#000' : '#666';
+        ctx.fillStyle = '#000';
         ctx.font = 'bold 11px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(sensor.id, sensor.x, sensor.y);
 
-        // Add pressure value below sensor with enhanced visibility
+        // Add pressure value below sensor
         if (sensor.value > 0) {
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-          ctx.font = 'bold 10px Inter, sans-serif';
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+          ctx.font = '10px Inter, sans-serif';
           ctx.fillText(`${sensor.value.toFixed(1)}`, sensor.x, sensor.y + 35);
         }
       });
-
-      // Highlight max pressure sensor if available
-      if (footData.maxSensorId) {
-        const maxSensor = footData.sensors.find(s => s.id === footData.maxSensorId);
-        if (maxSensor) {
-          ctx.strokeStyle = '#ff0000';
-          ctx.lineWidth = 3;
-          ctx.setLineDash([5, 5]);
-          ctx.beginPath();
-          ctx.arc(maxSensor.x, maxSensor.y, 35, 0, 2 * Math.PI);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          
-          // Add "MAX AVG" label
-          ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
-          ctx.fillRect(maxSensor.x - 25, maxSensor.y - 50, 50, 15);
-          ctx.fillStyle = 'white';
-          ctx.font = 'bold 9px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('MAX AVG', maxSensor.x, maxSensor.y - 42);
-        }
-      }
-
-      // Highlight overall max pressure sensor if different from avg max
-      if (footData.overallMaxSensor && footData.overallMaxSensor !== footData.maxSensorId) {
-        const overallMaxSensor = footData.sensors.find(s => s.id === footData.overallMaxSensor);
-        if (overallMaxSensor) {
-          ctx.strokeStyle = '#ff6600';
-          ctx.lineWidth = 3;
-          ctx.setLineDash([3, 3]);
-          ctx.beginPath();
-          ctx.arc(overallMaxSensor.x, overallMaxSensor.y, 35, 0, 2 * Math.PI);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          
-          // Add "PEAK" label
-          ctx.fillStyle = 'rgba(255, 102, 0, 0.9)';
-          ctx.fillRect(overallMaxSensor.x - 20, overallMaxSensor.y - 50, 40, 15);
-          ctx.fillStyle = 'white';
-          ctx.font = 'bold 9px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('PEAK', overallMaxSensor.x, overallMaxSensor.y - 42);
-        }
-      }
     };
     
     img.onerror = () => {

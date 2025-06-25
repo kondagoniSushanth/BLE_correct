@@ -23,7 +23,6 @@ function App() {
     rightFootData,
     sessionData,
     isRecording,
-    countdown,
     parseIncomingData,
     startRecording,
     stopRecording
@@ -61,7 +60,6 @@ function App() {
         onViewModeChange={setViewMode}
         sessionData={sessionData}
         isRecording={isRecording}
-        countdown={countdown}
         onStartRecording={() => startRecording(20000)}
         onStopRecording={stopRecording}
         isConnected={bleDevice.connected}

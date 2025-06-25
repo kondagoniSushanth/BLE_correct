@@ -2,7 +2,7 @@ export const getPressureColor = (pressure: number): string => {
   // Normalize pressure to 0-1 range (0-225 kPa)
   const normalized = Math.min(Math.max(pressure / 225, 0), 1);
   
-  // Enhanced color gradient from blue (0) to red (225+) with more vibrant colors
+  // Color gradient from blue (0) to red (225+)
   const colors = [
     { r: 30, g: 144, b: 255 },   // Blue (0 kPa)
     { r: 0, g: 191, b: 255 },    // Deep sky blue
@@ -36,7 +36,5 @@ export const getPressureColor = (pressure: number): string => {
 };
 
 export const getPressureOpacity = (pressure: number): number => {
-  // Increased minimum opacity from 0.2 to 0.4 for better visibility
-  // Maximum opacity increased from 1 to 0.9 to maintain some transparency
-  return Math.min(Math.max(pressure / 225 * 0.7 + 0.4, 0.4), 0.9);
+  return Math.min(Math.max(pressure / 225 * 0.8 + 0.2, 0.2), 1);
 };

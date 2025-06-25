@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { FootData, SensorData, SessionData, FootType } from '../types';
 
 const SENSOR_POSITIONS = {
@@ -49,26 +49,10 @@ export const useFootData = () => {
 
   const [sessionData, setSessionData] = useState<SessionData[]>([]);
   const [isRecording, setIsRecording] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  
   const recordingTimer = useRef<NodeJS.Timeout | null>(null);
-  const countdownTimer = useRef<NodeJS.Timeout | null>(null);
   const recordingData = useRef<SessionData[]>([]);
-  
-  // Track overall maximum pressure during recording session
-  const overallMaxLeftPressureRef = useRef(0);
-  const overallMaxRightPressureRef = useRef(0);
-  const overallMaxLeftSensorRef = useRef('');
-  const overallMaxRightSensorRef = useRef('');
 
-  const updateFootData = useCallback((
-    foot: FootType, 
-    values: number[], 
-    maxSensorId?: string, 
-    maxSensorValue?: number,
-    overallMaxPressure?: number,
-    overallMaxSensor?: string
-  ) => {
+  const updateFootData = useCallback((foot: FootType, values: number[]) => {
     console.log(`🔄 updateFootData called for ${foot} foot with values:`, values);
     
     if (values.length !== 8) {
@@ -89,11 +73,7 @@ export const useFootData = () => {
 
     const footData: FootData = {
       sensors,
-      lastUpdate: timestamp,
-      maxSensorId,
-      maxSensorValue,
-      overallMaxPressure,
-      overallMaxSensor
+      lastUpdate: timestamp
     };
 
     console.log(`✅ Updating ${foot} foot state with processed data:`, footData);
@@ -106,24 +86,9 @@ export const useFootData = () => {
       console.log(`📊 Right foot data state updated`);
     }
 
-    // Track overall maximum during recording
+    // Add to recording data if recording
     if (isRecording) {
-      console.log(`🔴 Recording active - adding data to session and tracking max values`);
-      
-      // Find max pressure in current data
-      const maxValue = Math.max(...values);
-      const maxIndex = values.indexOf(maxValue);
-      const maxSensorIdCurrent = `${foot === 'left' ? 'L' : 'R'}${maxIndex + 1}`;
-      
-      // Update overall max for this foot
-      if (foot === 'left' && maxValue > overallMaxLeftPressureRef.current) {
-        overallMaxLeftPressureRef.current = maxValue;
-        overallMaxLeftSensorRef.current = maxSensorIdCurrent;
-      } else if (foot === 'right' && maxValue > overallMaxRightPressureRef.current) {
-        overallMaxRightPressureRef.current = maxValue;
-        overallMaxRightSensorRef.current = maxSensorIdCurrent;
-      }
-      
+      console.log(`🔴 Recording active - adding data to session`);
       const currentSession: SessionData = {
         timestamp,
         leftFoot: foot === 'left' ? values : recordingData.current[recordingData.current.length - 1]?.leftFoot || Array(8).fill(0),
@@ -198,14 +163,7 @@ export const useFootData = () => {
   }, [updateFootData]);
 
   const calculateAverages = useCallback((data: SessionData[]) => {
-    if (data.length === 0) return { 
-      leftFoot: Array(8).fill(0), 
-      rightFoot: Array(8).fill(0),
-      leftMaxSensorId: '',
-      leftMaxValue: 0,
-      rightMaxSensorId: '',
-      rightMaxValue: 0
-    };
+    if (data.length === 0) return { leftFoot: Array(8).fill(0), rightFoot: Array(8).fill(0) };
 
     const leftSums = Array(8).fill(0);
     const rightSums = Array(8).fill(0);
@@ -222,36 +180,13 @@ export const useFootData = () => {
     const leftAverages = leftSums.map(sum => sum / data.length);
     const rightAverages = rightSums.map(sum => sum / data.length);
 
-    // Find max averaged values
-    const leftMaxValue = Math.max(...leftAverages);
-    const leftMaxIndex = leftAverages.indexOf(leftMaxValue);
-    const leftMaxSensorId = `L${leftMaxIndex + 1}`;
-
-    const rightMaxValue = Math.max(...rightAverages);
-    const rightMaxIndex = rightAverages.indexOf(rightMaxValue);
-    const rightMaxSensorId = `R${rightMaxIndex + 1}`;
-
-    return { 
-      leftFoot: leftAverages, 
-      rightFoot: rightAverages,
-      leftMaxSensorId,
-      leftMaxValue,
-      rightMaxSensorId,
-      rightMaxValue
-    };
+    return { leftFoot: leftAverages, rightFoot: rightAverages };
   }, []);
 
   const startRecording = useCallback((duration: number = 20000) => {
     setIsRecording(true);
     setSessionData([]);
-    setCountdown(Math.ceil(duration / 1000));
     recordingData.current = [];
-    
-    // Reset overall max tracking
-    overallMaxLeftPressureRef.current = 0;
-    overallMaxRightPressureRef.current = 0;
-    overallMaxLeftSensorRef.current = '';
-    overallMaxRightSensorRef.current = '';
     
     // Dispatch system message
     window.dispatchEvent(new CustomEvent('ble-data', { 
@@ -260,51 +195,17 @@ export const useFootData = () => {
     
     console.log(`Starting recording for ${duration}ms`);
     
-    // Start countdown timer
-    countdownTimer.current = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          if (countdownTimer.current) {
-            clearInterval(countdownTimer.current);
-            countdownTimer.current = null;
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    
     recordingTimer.current = setTimeout(() => {
       setIsRecording(false);
-      setCountdown(0);
-      
-      if (countdownTimer.current) {
-        clearInterval(countdownTimer.current);
-        countdownTimer.current = null;
-      }
       
       // Calculate averages and update heatmap
       const averages = calculateAverages(recordingData.current);
       
       console.log('Recording completed. Averages calculated:', averages);
       
-      // Update foot data with averages and max values
-      updateFootData(
-        'left', 
-        averages.leftFoot, 
-        averages.leftMaxSensorId, 
-        averages.leftMaxValue,
-        overallMaxLeftPressureRef.current,
-        overallMaxLeftSensorRef.current
-      );
-      updateFootData(
-        'right', 
-        averages.rightFoot, 
-        averages.rightMaxSensorId, 
-        averages.rightMaxValue,
-        overallMaxRightPressureRef.current,
-        overallMaxRightSensorRef.current
-      );
+      // Update foot data with averages
+      updateFootData('left', averages.leftFoot);
+      updateFootData('right', averages.rightFoot);
       
       window.dispatchEvent(new CustomEvent('ble-data', { 
         detail: { data: `⏹️ Recording completed automatically. Processed ${recordingData.current.length} data points.` } 
@@ -316,16 +217,9 @@ export const useFootData = () => {
 
   const stopRecording = useCallback(() => {
     setIsRecording(false);
-    setCountdown(0);
-    
     if (recordingTimer.current) {
       clearTimeout(recordingTimer.current);
       recordingTimer.current = null;
-    }
-    
-    if (countdownTimer.current) {
-      clearInterval(countdownTimer.current);
-      countdownTimer.current = null;
     }
     
     // Calculate averages and update heatmap
@@ -333,23 +227,9 @@ export const useFootData = () => {
     
     console.log('Recording stopped manually. Averages calculated:', averages);
     
-    // Update foot data with averages and max values
-    updateFootData(
-      'left', 
-      averages.leftFoot, 
-      averages.leftMaxSensorId, 
-      averages.leftMaxValue,
-      overallMaxLeftPressureRef.current,
-      overallMaxLeftSensorRef.current
-    );
-    updateFootData(
-      'right', 
-      averages.rightFoot, 
-      averages.rightMaxSensorId, 
-      averages.rightMaxValue,
-      overallMaxRightPressureRef.current,
-      overallMaxRightSensorRef.current
-    );
+    // Update foot data with averages
+    updateFootData('left', averages.leftFoot);
+    updateFootData('right', averages.rightFoot);
     
     // Dispatch system message
     window.dispatchEvent(new CustomEvent('ble-data', { 
@@ -359,24 +239,11 @@ export const useFootData = () => {
     console.log(`Recording stopped with ${recordingData.current.length} data points`);
   }, [calculateAverages, updateFootData]);
 
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      if (recordingTimer.current) {
-        clearTimeout(recordingTimer.current);
-      }
-      if (countdownTimer.current) {
-        clearInterval(countdownTimer.current);
-      }
-    };
-  }, []);
-
   return {
     leftFootData,
     rightFootData,
     sessionData,
     isRecording,
-    countdown,
     parseIncomingData,
     startRecording,
     stopRecording

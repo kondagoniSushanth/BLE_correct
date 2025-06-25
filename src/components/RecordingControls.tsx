@@ -1,9 +1,8 @@
 import React from 'react';
-import { Play, Square, Timer, BarChart3, Clock } from 'lucide-react';
+import { Play, Square, Timer, BarChart3 } from 'lucide-react';
 
 interface RecordingControlsProps {
   isRecording: boolean;
-  countdown: number;
   onStartRecording: () => void;
   onStopRecording: () => void;
   isConnected: boolean;
@@ -11,7 +10,6 @@ interface RecordingControlsProps {
 
 export const RecordingControls: React.FC<RecordingControlsProps> = ({
   isRecording,
-  countdown,
   onStartRecording,
   onStopRecording,
   isConnected
@@ -35,30 +33,10 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
           </button>
         ) : (
           <div className="space-y-3">
-            {/* Animated Timer Display */}
-            <div className="flex items-center justify-center space-x-3 text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">
-              <div className="relative">
-                <Clock className="h-8 w-8 animate-pulse" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold tabular-nums">
-                  {countdown}s
-                </div>
-                <div className="text-sm font-medium">Recording...</div>
-              </div>
+            <div className="flex items-center justify-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
+              <Timer className="h-5 w-5 animate-pulse" />
+              <span className="font-medium">Recording in Progress...</span>
             </div>
-            
-            {/* Progress Bar */}
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-red-600 h-2 rounded-full transition-all duration-1000 ease-linear"
-                style={{ width: `${((20 - countdown) / 20) * 100}%` }}
-              ></div>
-            </div>
-            
             <button
               onClick={onStopRecording}
               className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
@@ -83,7 +61,6 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
         <ul className="text-xs text-blue-800 space-y-1">
           <li>• Records all sensor data for 20 seconds</li>
           <li>• Calculates average pressure for each sensor</li>
-          <li>• Identifies highest pressure points</li>
           <li>• Updates heatmap with averaged values</li>
           <li>• Data is available for export after recording</li>
         </ul>
