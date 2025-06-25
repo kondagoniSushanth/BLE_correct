@@ -53,8 +53,10 @@ export const useFootData = () => {
   const recordingData = useRef<SessionData[]>([]);
 
   const updateFootData = useCallback((foot: FootType, values: number[]) => {
+    console.log(`🔄 updateFootData called for ${foot} foot with values:`, values);
+    
     if (values.length !== 8) {
-      console.warn(`Invalid sensor data length: expected 8, got ${values.length}`);
+      console.warn(`❌ Invalid sensor data length for ${foot} foot: expected 8, got ${values.length}. Values:`, values);
       return;
     }
 
@@ -74,14 +76,19 @@ export const useFootData = () => {
       lastUpdate: timestamp
     };
 
+    console.log(`✅ Updating ${foot} foot state with processed data:`, footData);
+
     if (foot === 'left') {
       setLeftFootData(footData);
+      console.log(`📊 Left foot data state updated`);
     } else {
       setRightFootData(footData);
+      console.log(`📊 Right foot data state updated`);
     }
 
     // Add to recording data if recording
     if (isRecording) {
+      console.log(`🔴 Recording active - adding data to session`);
       const currentSession: SessionData = {
         timestamp,
         leftFoot: foot === 'left' ? values : recordingData.current[recordingData.current.length - 1]?.leftFoot || Array(8).fill(0),
@@ -92,50 +99,67 @@ export const useFootData = () => {
       
       // Update session data for real-time display
       setSessionData(prev => [...prev, currentSession]);
+      console.log(`📈 Session data updated, total sessions: ${recordingData.current.length}`);
     }
 
-    console.log(`Updated ${foot} foot data:`, values);
+    console.log(`✅ ${foot} foot data processing completed successfully`);
   }, [isRecording]);
 
   const parseIncomingData = useCallback((data: string) => {
-    // Dispatch custom event for serial terminal
+    console.log(`📡 parseIncomingData called with raw data:`, data);
+    
+    // Dispatch custom event for serial terminal (BLE logic unchanged)
     window.dispatchEvent(new CustomEvent('ble-data', { detail: { data } }));
     
-    console.log('Parsing incoming BLE data:', data);
-    
     const lines = data.trim().split('\n');
+    console.log(`📝 Split into ${lines.length} lines:`, lines);
     
-    lines.forEach(line => {
+    lines.forEach((line, lineIndex) => {
       const trimmedLine = line.trim();
+      console.log(`🔍 Processing line ${lineIndex + 1}: "${trimmedLine}"`);
       
       if (trimmedLine.startsWith('PRESSURE_LEFT:')) {
+        console.log(`👈 Found LEFT foot data in line ${lineIndex + 1}`);
         const valuesStr = trimmedLine.replace('PRESSURE_LEFT:', '').trim();
+        console.log(`🔢 Extracted values string: "${valuesStr}"`);
+        
         const values = valuesStr.split(',').map(v => {
           const parsed = parseFloat(v.trim());
           return isNaN(parsed) ? 0 : parsed;
         });
         
+        console.log(`🧮 Parsed values for LEFT foot:`, values);
+        
         if (values.length === 8) {
-          console.log('Updating left foot with values:', values);
+          console.log(`✅ Valid LEFT foot data - calling updateFootData`);
           updateFootData('left', values);
         } else {
-          console.warn('Invalid left foot data format:', valuesStr);
+          console.warn(`❌ Invalid LEFT foot data format. Expected 8 values, got ${values.length}. Raw string: "${valuesStr}", Parsed values:`, values);
         }
       } else if (trimmedLine.startsWith('PRESSURE_RIGHT:')) {
+        console.log(`👉 Found RIGHT foot data in line ${lineIndex + 1}`);
         const valuesStr = trimmedLine.replace('PRESSURE_RIGHT:', '').trim();
+        console.log(`🔢 Extracted values string: "${valuesStr}"`);
+        
         const values = valuesStr.split(',').map(v => {
           const parsed = parseFloat(v.trim());
           return isNaN(parsed) ? 0 : parsed;
         });
         
+        console.log(`🧮 Parsed values for RIGHT foot:`, values);
+        
         if (values.length === 8) {
-          console.log('Updating right foot with values:', values);
+          console.log(`✅ Valid RIGHT foot data - calling updateFootData`);
           updateFootData('right', values);
         } else {
-          console.warn('Invalid right foot data format:', valuesStr);
+          console.warn(`❌ Invalid RIGHT foot data format. Expected 8 values, got ${values.length}. Raw string: "${valuesStr}", Parsed values:`, values);
         }
+      } else if (trimmedLine.length > 0) {
+        console.log(`⚠️ Unrecognized data format in line ${lineIndex + 1}: "${trimmedLine}"`);
       }
     });
+    
+    console.log(`🏁 parseIncomingData processing completed`);
   }, [updateFootData]);
 
   const calculateAverages = useCallback((data: SessionData[]) => {
