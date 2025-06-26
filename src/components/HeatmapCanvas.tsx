@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { FootData, FootType } from '../types';
 import { getPressureColor, getPressureOpacity } from '../utils/colorMapping';
 
@@ -24,6 +24,8 @@ export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
+  const [footSoleImage, setFootSoleImage] = useState<HTMLImageElement | null>(null);
+  const [imageLoadError, setImageLoadError] = useState<boolean>(false);
   const [tooltip, setTooltip] = useState<TooltipData>({
     visible: false,
     x: 0,
@@ -32,8 +34,141 @@ export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
     pressure: 0,
     timestamp: new Date()
   });
-  const [imageLoaded, setImageLoaded] = useState(false);
 
+  // Separate effect for image loading - only runs when footType changes
+  useEffect(() => {
+    console.log(`Loading foot sole image for ${footType} foot`);
+    
+    const img = new Image();
+    
+    const handleLoad = () => {
+      console.log(`✅ Foot sole image loaded successfully for ${footType} foot`);
+      setFootSoleImage(img);
+      setImageLoadError(false);
+    };
+    
+    const handleError = () => {
+      console.error(`❌ Failed to load foot sole image: /${footType}_sole.png`);
+      setFootSoleImage(null);
+      setImageLoadError(true);
+    };
+    
+    img.onload = handleLoad;
+    img.onerror = handleError;
+    img.src = `/${footType}_sole.png`;
+    
+    // Cleanup function
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [footType]);
+
+  // Drawing function - separated from animation loop
+  const drawCanvas = useCallback((
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    currentFootData: FootData,
+    image: HTMLImageElement | null,
+    hasImageError: boolean,
+    time: number
+  ) => {
+    // Clear canvas with white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw foot sole image or fallback
+    if (image && !hasImageError) {
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    } else {
+      // Draw fallback foot outline
+      ctx.strokeStyle = '#ddd';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(canvas.width / 2, canvas.height / 2, 120, 200, 0, 0, 2 * Math.PI);
+      ctx.stroke();
+      
+      // Add fallback text
+      ctx.fillStyle = '#999';
+      ctx.font = '14px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Foot Outline', canvas.width / 2, canvas.height / 2);
+    }
+
+    // Find max pressure sensor for animation
+    const maxPressureSensor = currentFootData.sensors.reduce((max, sensor) => 
+      sensor.value > max.value ? sensor : max
+    );
+
+    // Draw pressure sensors
+    currentFootData.sensors.forEach((sensor) => {
+      const color = getPressureColor(sensor.value);
+      const opacity = getPressureOpacity(sensor.value);
+      
+      // Draw pressure circle with gradient effect
+      const gradient = ctx.createRadialGradient(sensor.x, sensor.y, 0, sensor.x, sensor.y, 25);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(sensor.x, sensor.y, 25, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.restore();
+
+      // Add sensor border
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(sensor.x, sensor.y, 25, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      // Add sensor label with background
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillRect(sensor.x - 12, sensor.y - 8, 24, 16);
+      
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(sensor.id, sensor.x, sensor.y);
+
+      // Add pressure value below sensor
+      if (sensor.value > 0) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.fillText(`${sensor.value.toFixed(1)}`, sensor.x, sensor.y + 35);
+      }
+    });
+
+    // Animate max pressure sensor with pulsating circle (time-based animation)
+    if (maxPressureSensor.value > 0) {
+      const pulseRadius = 35 + Math.sin(time * 0.005) * 8;
+      const pulseOpacity = 0.3 + Math.sin(time * 0.005) * 0.2;
+      
+      ctx.save();
+      ctx.globalAlpha = pulseOpacity;
+      ctx.strokeStyle = '#ff0000';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.arc(maxPressureSensor.x, maxPressureSensor.y, pulseRadius, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.restore();
+
+      // Add "MAX" label
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
+      ctx.fillRect(maxPressureSensor.x - 15, maxPressureSensor.y - 50, 30, 16);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('MAX', maxPressureSensor.x, maxPressureSensor.y - 42);
+    }
+  }, []);
+
+  // Animation loop effect - runs when footData, image, or error state changes
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -41,142 +176,24 @@ export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Find max pressure sensor for animation
-    const maxPressureSensor = footData.sensors.reduce((max, sensor) => 
-      sensor.value > max.value ? sensor : max
-    );
+    console.log(`🎨 Starting animation loop for ${footType} foot`);
 
-    let animationTime = 0;
-
-    const animate = () => {
-      // Clear canvas with white background
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Load and draw foot sole image
-      const img = new Image();
-      img.onload = () => {
-        setImageLoaded(true);
-        
-        // Draw the foot sole image
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Draw pressure sensors
-        footData.sensors.forEach((sensor) => {
-          const color = getPressureColor(sensor.value);
-          const opacity = getPressureOpacity(sensor.value);
-          
-          // Draw pressure circle with gradient effect
-          const gradient = ctx.createRadialGradient(sensor.x, sensor.y, 0, sensor.x, sensor.y, 25);
-          gradient.addColorStop(0, color);
-          gradient.addColorStop(1, 'rgba(255,255,255,0)');
-          
-          ctx.save();
-          ctx.globalAlpha = opacity;
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.arc(sensor.x, sensor.y, 25, 0, 2 * Math.PI);
-          ctx.fill();
-          ctx.restore();
-
-          // Add sensor border
-          ctx.strokeStyle = '#333';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.arc(sensor.x, sensor.y, 25, 0, 2 * Math.PI);
-          ctx.stroke();
-
-          // Add sensor label with background
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.fillRect(sensor.x - 12, sensor.y - 8, 24, 16);
-          
-          ctx.fillStyle = '#000';
-          ctx.font = 'bold 11px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(sensor.id, sensor.x, sensor.y);
-
-          // Add pressure value below sensor
-          if (sensor.value > 0) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            ctx.font = '10px Inter, sans-serif';
-            ctx.fillText(`${sensor.value.toFixed(1)}`, sensor.x, sensor.y + 35);
-          }
-        });
-
-        // Animate max pressure sensor with pulsating circle
-        if (maxPressureSensor.value > 0) {
-          const pulseRadius = 35 + Math.sin(animationTime * 0.1) * 8;
-          const pulseOpacity = 0.3 + Math.sin(animationTime * 0.1) * 0.2;
-          
-          ctx.save();
-          ctx.globalAlpha = pulseOpacity;
-          ctx.strokeStyle = '#ff0000';
-          ctx.lineWidth = 3;
-          ctx.setLineDash([5, 5]);
-          ctx.beginPath();
-          ctx.arc(maxPressureSensor.x, maxPressureSensor.y, pulseRadius, 0, 2 * Math.PI);
-          ctx.stroke();
-          ctx.restore();
-
-          // Add "MAX" label
-          ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
-          ctx.fillRect(maxPressureSensor.x - 15, maxPressureSensor.y - 50, 30, 16);
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 10px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('MAX', maxPressureSensor.x, maxPressureSensor.y - 42);
-        }
-
-        animationTime += 1;
-        animationRef.current = requestAnimationFrame(animate);
-      };
-      
-      img.onerror = () => {
-        console.error(`Failed to load foot sole image: /${footType}_sole.png`);
-        setImageLoaded(false);
-        
-        // Draw fallback foot outline
-        ctx.strokeStyle = '#ccc';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(canvas.width / 2, canvas.height / 2, 120, 200, 0, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        // Draw sensors even without image
-        footData.sensors.forEach((sensor) => {
-          const color = getPressureColor(sensor.value);
-          const opacity = getPressureOpacity(sensor.value);
-          
-          ctx.save();
-          ctx.globalAlpha = opacity;
-          ctx.fillStyle = color;
-          ctx.beginPath();
-          ctx.arc(sensor.x, sensor.y, 25, 0, 2 * Math.PI);
-          ctx.fill();
-          ctx.restore();
-
-          ctx.fillStyle = '#000';
-          ctx.font = '12px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(sensor.id, sensor.x, sensor.y + 4);
-        });
-
-        animationTime += 1;
-        animationRef.current = requestAnimationFrame(animate);
-      };
-      
-      img.src = `/${footType}_sole.png`;
+    const animateLoop = (time: DOMHighResTimeStamp) => {
+      drawCanvas(ctx, canvas, footData, footSoleImage, imageLoadError, time);
+      animationRef.current = requestAnimationFrame(animateLoop);
     };
 
-    animate();
+    // Start animation loop
+    animationRef.current = requestAnimationFrame(animateLoop);
 
+    // Cleanup function
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+        console.log(`🛑 Animation loop stopped for ${footType} foot`);
       }
     };
-  }, [footData, footType]);
+  }, [footData, footSoleImage, imageLoadError, footType, drawCanvas]);
 
   const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -232,6 +249,11 @@ export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
             {footData.sensors.filter(s => s.value > 0).length}/8 active
           </span>
         </div>
+        {imageLoadError && (
+          <div className="text-xs text-orange-600 mt-1">
+            Image fallback
+          </div>
+        )}
       </div>
       
       {tooltip.visible && (
