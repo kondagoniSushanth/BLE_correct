@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FootType, ViewMode } from './types';
+import { FootType, ViewMode, AppMode } from './types';
 import { Navigation } from './components/Navigation';
 import { BLEControls } from './components/BLEControls';
 import { FootPressureView } from './components/FootPressureView';
@@ -9,6 +9,7 @@ import { useFootData } from './hooks/useFootData';
 function App() {
   const [activeTab, setActiveTab] = useState<FootType>('left');
   const [viewMode, setViewMode] = useState<ViewMode>('heatmap');
+  const [appMode, setAppMode] = useState<AppMode>('live');
   
   const {
     bleDevice,
@@ -21,19 +22,20 @@ function App() {
   const {
     leftFootData,
     rightFootData,
+    averagedLeftFootData,
+    averagedRightFootData,
     sessionData,
     isRecording,
     parseIncomingData,
     startRecording,
-    stopRecording
+    stopRecording,
+    resetAveragedData
   } = useFootData();
 
   // Set up BLE data handler
   useEffect(() => {
     setDataHandler(parseIncomingData);
   }, [setDataHandler, parseIncomingData]);
-
-  const currentFootData = activeTab === 'left' ? leftFootData : rightFootData;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -54,14 +56,20 @@ function App() {
 
       {/* Main Content */}
       <FootPressureView
-        footData={currentFootData}
+        leftFootData={leftFootData}
+        rightFootData={rightFootData}
+        averagedLeftFootData={averagedLeftFootData}
+        averagedRightFootData={averagedRightFootData}
         footType={activeTab}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        appMode={appMode}
+        onAppModeChange={setAppMode}
         sessionData={sessionData}
         isRecording={isRecording}
         onStartRecording={() => startRecording(20000)}
         onStopRecording={stopRecording}
+        onResetAveragedData={resetAveragedData}
         isConnected={bleDevice.connected}
       />
     </div>

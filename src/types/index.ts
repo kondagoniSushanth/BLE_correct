@@ -19,6 +19,7 @@ export interface SessionData {
 
 export type ViewMode = 'heatmap' | 'console' | 'graph';
 export type FootType = 'left' | 'right';
+export type AppMode = 'live' | 'test';
 
 export interface BLEDevice {
   device: BluetoothDevice | null;

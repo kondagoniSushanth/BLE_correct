@@ -2,17 +2,19 @@ export const getPressureColor = (pressure: number): string => {
   // Normalize pressure to 0-1 range (0-225 kPa)
   const normalized = Math.min(Math.max(pressure / 225, 0), 1);
   
-  // Color gradient from blue (0) to red (225+)
+  // Enhanced color gradient with more vibrant and saturated colors
   const colors = [
-    { r: 30, g: 144, b: 255 },   // Blue (0 kPa)
-    { r: 0, g: 191, b: 255 },    // Deep sky blue
-    { r: 64, g: 224, b: 208 },   // Turquoise
-    { r: 50, g: 205, b: 50 },    // Lime green
-    { r: 154, g: 205, b: 50 },   // Yellow green
-    { r: 255, g: 255, b: 0 },    // Yellow
-    { r: 255, g: 165, b: 0 },    // Orange
-    { r: 255, g: 69, b: 0 },     // Red orange
-    { r: 255, g: 0, b: 0 }       // Red (225+ kPa)
+    { r: 0, g: 0, b: 139 },       // Dark blue (0 kPa) - more intense
+    { r: 0, g: 100, b: 255 },     // Bright blue
+    { r: 0, g: 191, b: 255 },     // Deep sky blue - more saturated
+    { r: 0, g: 255, b: 200 },     // Bright cyan
+    { r: 50, g: 255, b: 50 },     // Bright lime green - more intense
+    { r: 200, g: 255, b: 0 },     // Yellow green - more saturated
+    { r: 255, g: 255, b: 0 },     // Pure yellow - maximum saturation
+    { r: 255, g: 140, b: 0 },     // Dark orange - more intense
+    { r: 255, g: 69, b: 0 },      // Red orange - more saturated
+    { r: 220, g: 20, b: 60 },     // Crimson - more intense
+    { r: 139, g: 0, b: 0 }        // Dark red (225+ kPa) - maximum intensity
   ];
   
   const index = normalized * (colors.length - 1);
@@ -36,5 +38,13 @@ export const getPressureColor = (pressure: number): string => {
 };
 
 export const getPressureOpacity = (pressure: number): number => {
-  return Math.min(Math.max(pressure / 225 * 0.8 + 0.2, 0.2), 1);
+  // Enhanced opacity calculation for better visual contrast
+  const baseOpacity = 0.3; // Minimum opacity for visibility
+  const maxOpacity = 0.95;  // Maximum opacity for high pressure
+  const normalized = Math.min(Math.max(pressure / 225, 0), 1);
+  
+  // Use exponential curve for better visual distinction
+  const exponentialNormalized = Math.pow(normalized, 0.7);
+  
+  return baseOpacity + (maxOpacity - baseOpacity) * exponentialNormalized;
 };

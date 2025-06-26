@@ -47,6 +47,8 @@ export const useFootData = () => {
     lastUpdate: new Date()
   });
 
+  const [averagedLeftFootData, setAveragedLeftFootData] = useState<FootData | null>(null);
+  const [averagedRightFootData, setAveragedRightFootData] = useState<FootData | null>(null);
   const [sessionData, setSessionData] = useState<SessionData[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const recordingTimer = useRef<NodeJS.Timeout | null>(null);
@@ -183,6 +185,24 @@ export const useFootData = () => {
     return { leftFoot: leftAverages, rightFoot: rightAverages };
   }, []);
 
+  const createAveragedFootData = useCallback((averages: number[], foot: FootType): FootData => {
+    const timestamp = new Date();
+    const positions = SENSOR_POSITIONS[foot];
+
+    const sensors: SensorData[] = averages.map((value, i) => ({
+      id: `${foot === 'left' ? 'L' : 'R'}${i + 1}`,
+      value: Math.max(0, value),
+      timestamp,
+      x: positions[i].x,
+      y: positions[i].y
+    }));
+
+    return {
+      sensors,
+      lastUpdate: timestamp
+    };
+  }, []);
+
   const startRecording = useCallback((duration: number = 20000) => {
     setIsRecording(true);
     setSessionData([]);
@@ -198,14 +218,18 @@ export const useFootData = () => {
     recordingTimer.current = setTimeout(() => {
       setIsRecording(false);
       
-      // Calculate averages and update heatmap
+      // Calculate averages and create averaged foot data
       const averages = calculateAverages(recordingData.current);
       
       console.log('Recording completed. Averages calculated:', averages);
       
-      // Update foot data with averages
-      updateFootData('left', averages.leftFoot);
-      updateFootData('right', averages.rightFoot);
+      // Create averaged foot data objects
+      const avgLeftFootData = createAveragedFootData(averages.leftFoot, 'left');
+      const avgRightFootData = createAveragedFootData(averages.rightFoot, 'right');
+      
+      // Set averaged data states
+      setAveragedLeftFootData(avgLeftFootData);
+      setAveragedRightFootData(avgRightFootData);
       
       window.dispatchEvent(new CustomEvent('ble-data', { 
         detail: { data: `⏹️ Recording completed automatically. Processed ${recordingData.current.length} data points.` } 
@@ -213,7 +237,7 @@ export const useFootData = () => {
       
       console.log(`Recording completed with ${recordingData.current.length} data points`);
     }, duration);
-  }, [calculateAverages, updateFootData]);
+  }, [calculateAverages, createAveragedFootData]);
 
   const stopRecording = useCallback(() => {
     setIsRecording(false);
@@ -222,14 +246,18 @@ export const useFootData = () => {
       recordingTimer.current = null;
     }
     
-    // Calculate averages and update heatmap
+    // Calculate averages and create averaged foot data
     const averages = calculateAverages(recordingData.current);
     
     console.log('Recording stopped manually. Averages calculated:', averages);
     
-    // Update foot data with averages
-    updateFootData('left', averages.leftFoot);
-    updateFootData('right', averages.rightFoot);
+    // Create averaged foot data objects
+    const avgLeftFootData = createAveragedFootData(averages.leftFoot, 'left');
+    const avgRightFootData = createAveragedFootData(averages.rightFoot, 'right');
+    
+    // Set averaged data states
+    setAveragedLeftFootData(avgLeftFootData);
+    setAveragedRightFootData(avgRightFootData);
     
     // Dispatch system message
     window.dispatchEvent(new CustomEvent('ble-data', { 
@@ -237,15 +265,31 @@ export const useFootData = () => {
     }));
     
     console.log(`Recording stopped with ${recordingData.current.length} data points`);
-  }, [calculateAverages, updateFootData]);
+  }, [calculateAverages, createAveragedFootData]);
+
+  const resetAveragedData = useCallback(() => {
+    setAveragedLeftFootData(null);
+    setAveragedRightFootData(null);
+    setSessionData([]);
+    recordingData.current = [];
+    
+    window.dispatchEvent(new CustomEvent('ble-data', { 
+      detail: { data: `🔄 Averaged data reset` } 
+    }));
+    
+    console.log('Averaged data reset');
+  }, []);
 
   return {
     leftFootData,
     rightFootData,
+    averagedLeftFootData,
+    averagedRightFootData,
     sessionData,
     isRecording,
     parseIncomingData,
     startRecording,
-    stopRecording
+    stopRecording,
+    resetAveragedData
   };
 };
