@@ -32,20 +32,12 @@ export const exportToExcel = (sessionData: SessionData[], filename: string = 'fo
   XLSX.writeFile(workbook, filename);
 };
 
-export const exportHeatmapImage = (imageBlob: Blob, filename: string = 'foot_heatmap.png') => {
-  try {
-    const url = URL.createObjectURL(imageBlob);
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Clean up the object URL
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Failed to export heatmap image:', error);
-    throw error;
-  }
+export const exportHeatmapImage = (canvasId: string, filename: string = 'foot_heatmap.png') => {
+  const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+  if (!canvas) return;
+  
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL();
+  link.click();
 };

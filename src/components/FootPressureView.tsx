@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { FootData, ViewMode, SessionData, FootType, AppMode } from '../types';
 import { HeatmapCanvas } from './HeatmapCanvas';
 import { ConsoleView } from './ConsoleView';
@@ -8,7 +8,6 @@ import { PressureLegend } from './PressureLegend';
 import { ViewControls } from './ViewControls';
 import { ModeControls } from './ModeControls';
 import { ExportControls } from './ExportControls';
-import { exportHeatmapImage } from '../utils/exportUtils';
 
 interface FootPressureViewProps {
   leftFootData: FootData;
@@ -21,7 +20,6 @@ interface FootPressureViewProps {
   appMode: AppMode;
   onAppModeChange: (mode: AppMode) => void;
   sessionData: SessionData[];
-  liveGraphHistory: SessionData[];
   isRecording: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
@@ -40,14 +38,13 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
   appMode,
   onAppModeChange,
   sessionData,
-  liveGraphHistory,
   isRecording,
   onStartRecording,
   onStopRecording,
   onResetAveragedData,
   isConnected
 }) => {
-  const heatmapCanvasRef = useRef<any>(null);
+  const canvasId = `${footType}-foot-canvas`;
 
   // Determine which data to display based on mode and recording state
   const getCurrentFootData = (): FootData => {
@@ -69,26 +66,6 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
 
   const currentFootData = getCurrentFootData();
   const hasAveragedData = (footType === 'left' ? averagedLeftFootData : averagedRightFootData) !== null;
-
-  // Determine which data to use for graph
-  const getGraphData = (): SessionData[] => {
-    return appMode === 'live' ? liveGraphHistory : sessionData;
-  };
-
-  const handleExportImage = async (filename: string) => {
-    if (heatmapCanvasRef.current && heatmapCanvasRef.current.getCanvasImageBlob) {
-      try {
-        const imageBlob = await heatmapCanvasRef.current.getCanvasImageBlob();
-        exportHeatmapImage(imageBlob, filename);
-      } catch (error) {
-        console.error('Failed to export heatmap image:', error);
-        alert('Failed to export heatmap image. Please try again.');
-      }
-    } else {
-      console.error('Canvas reference not available for export');
-      alert('Canvas not ready for export. Please try again.');
-    }
-  };
 
   return (
     <div className={`min-h-screen ${footType === 'left' ? 'bg-red-50' : 'bg-green-50'} p-6`}>
@@ -136,8 +113,8 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
             />
             <ExportControls
               sessionData={sessionData}
+              canvasId={canvasId}
               footType={footType}
-              onExportImage={handleExportImage}
             />
             {viewMode === 'heatmap' && <PressureLegend />}
           </div>
@@ -150,10 +127,9 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
                 <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
                   <div className="flex justify-center">
                     <HeatmapCanvas
-                      ref={heatmapCanvasRef}
                       footData={currentFootData}
                       footType={footType}
-                      canvasId={`${footType}-foot-canvas`}
+                      canvasId={canvasId}
                     />
                   </div>
                 </div>
@@ -164,7 +140,7 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
               )}
 
               {viewMode === 'graph' && (
-                <GraphView dataHistory={getGraphData()} footType={footType} />
+                <GraphView sessionData={sessionData} footType={footType} />
               )}
             </div>
 

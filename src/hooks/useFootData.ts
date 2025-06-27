@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { FootData, SensorData, SessionData, FootType, AppMode } from '../types';
+import { FootData, SensorData, SessionData, FootType } from '../types';
 
 const SENSOR_POSITIONS = {
   left: [
@@ -24,7 +24,7 @@ const SENSOR_POSITIONS = {
   ]
 };
 
-export const useFootData = (appMode: AppMode) => {
+export const useFootData = () => {
   const [leftFootData, setLeftFootData] = useState<FootData>({
     sensors: SENSOR_POSITIONS.left.map((pos, i) => ({
       id: `L${i + 1}`,
@@ -50,14 +50,11 @@ export const useFootData = (appMode: AppMode) => {
   const [averagedLeftFootData, setAveragedLeftFootData] = useState<FootData | null>(null);
   const [averagedRightFootData, setAveragedRightFootData] = useState<FootData | null>(null);
   const [sessionData, setSessionData] = useState<SessionData[]>([]);
-  const [liveGraphHistory, setLiveGraphHistory] = useState<SessionData[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const recordingTimer = useRef<NodeJS.Timeout | null>(null);
   const recordingData = useRef<SessionData[]>([]);
-  const lastLeftFootValues = useRef<number[]>(Array(8).fill(0));
-  const lastRightFootValues = useRef<number[]>(Array(8).fill(0));
 
-  const updateFootData = useCallback((foot: FootType, values: number[], currentAppMode: AppMode) => {
+  const updateFootData = useCallback((foot: FootType, values: number[]) => {
     console.log(`🔄 updateFootData called for ${foot} foot with values:`, values);
     
     if (values.length !== 8) {
@@ -83,31 +80,12 @@ export const useFootData = (appMode: AppMode) => {
 
     console.log(`✅ Updating ${foot} foot state with processed data:`, footData);
 
-    // Update foot data state
     if (foot === 'left') {
       setLeftFootData(footData);
-      lastLeftFootValues.current = values;
       console.log(`📊 Left foot data state updated`);
     } else {
       setRightFootData(footData);
-      lastRightFootValues.current = values;
       console.log(`📊 Right foot data state updated`);
-    }
-
-    // Add to live graph history if in live mode
-    if (currentAppMode === 'live') {
-      console.log(`📈 Live mode - adding data to live graph history`);
-      const liveSessionData: SessionData = {
-        timestamp,
-        leftFoot: foot === 'left' ? values : lastLeftFootValues.current,
-        rightFoot: foot === 'right' ? values : lastRightFootValues.current
-      };
-      
-      setLiveGraphHistory(prev => {
-        const updated = [...prev, liveSessionData];
-        // Keep only last 50 entries for performance
-        return updated.length > 50 ? updated.slice(-50) : updated;
-      });
     }
 
     // Add to recording data if recording
@@ -156,7 +134,7 @@ export const useFootData = (appMode: AppMode) => {
         
         if (values.length === 8) {
           console.log(`✅ Valid LEFT foot data - calling updateFootData`);
-          updateFootData('left', values, appMode);
+          updateFootData('left', values);
         } else {
           console.warn(`❌ Invalid LEFT foot data format. Expected 8 values, got ${values.length}. Raw string: "${valuesStr}", Parsed values:`, values);
         }
@@ -174,7 +152,7 @@ export const useFootData = (appMode: AppMode) => {
         
         if (values.length === 8) {
           console.log(`✅ Valid RIGHT foot data - calling updateFootData`);
-          updateFootData('right', values, appMode);
+          updateFootData('right', values);
         } else {
           console.warn(`❌ Invalid RIGHT foot data format. Expected 8 values, got ${values.length}. Raw string: "${valuesStr}", Parsed values:`, values);
         }
@@ -184,7 +162,7 @@ export const useFootData = (appMode: AppMode) => {
     });
     
     console.log(`🏁 parseIncomingData processing completed`);
-  }, [updateFootData, appMode]);
+  }, [updateFootData]);
 
   const calculateAverages = useCallback((data: SessionData[]) => {
     if (data.length === 0) return { leftFoot: Array(8).fill(0), rightFoot: Array(8).fill(0) };
@@ -293,7 +271,6 @@ export const useFootData = (appMode: AppMode) => {
     setAveragedLeftFootData(null);
     setAveragedRightFootData(null);
     setSessionData([]);
-    setLiveGraphHistory([]);
     recordingData.current = [];
     
     window.dispatchEvent(new CustomEvent('ble-data', { 
@@ -309,7 +286,6 @@ export const useFootData = (appMode: AppMode) => {
     averagedLeftFootData,
     averagedRightFootData,
     sessionData,
-    liveGraphHistory,
     isRecording,
     parseIncomingData,
     startRecording,

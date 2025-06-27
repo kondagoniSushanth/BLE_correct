@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { FootData, FootType } from '../types';
 import { getPressureColor, getPressureOpacity } from '../utils/colorMapping';
 
@@ -17,18 +17,13 @@ interface TooltipData {
   timestamp: Date;
 }
 
-export interface HeatmapCanvasRef {
-  getCanvasImageBlob: () => Promise<Blob>;
-}
-
-export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
+export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
   footData,
   footType,
   canvasId
-}, ref) => {
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
-  const footDataRef = useRef<FootData>(footData); // Store latest footData without triggering re-renders
   const [footSoleImage, setFootSoleImage] = useState<HTMLImageElement | null>(null);
   const [imageLoadError, setImageLoadError] = useState<boolean>(false);
   const [tooltip, setTooltip] = useState<TooltipData>({
@@ -40,20 +35,44 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
     timestamp: new Date()
   });
 
-  // Update footDataRef whenever footData changes (without affecting animation loop)
+  // Separate effect for image loading - only runs when footType changes
   useEffect(() => {
-    footDataRef.current = footData;
-  }, [footData]);
+    console.log(`Loading foot sole image for ${footType} foot`);
+    
+    const img = new Image();
+    
+    const handleLoad = () => {
+      console.log(`✅ Foot sole image loaded successfully for ${footType} foot`);
+      setFootSoleImage(img);
+      setImageLoadError(false);
+    };
+    
+    const handleError = () => {
+      console.error(`❌ Failed to load foot sole image: /${footType}_sole.png`);
+      setFootSoleImage(null);
+      setImageLoadError(true);
+    };
+    
+    img.onload = handleLoad;
+    img.onerror = handleError;
+    img.src = `/${footType}_sole.png`;
+    
+    // Cleanup function
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [footType]);
 
-  // Drawing function - now as a regular function declaration to avoid initialization issues
-  function drawCanvas(
+  // Drawing function - separated from animation loop
+  const drawCanvas = useCallback((
     ctx: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
     currentFootData: FootData,
     image: HTMLImageElement | null,
     hasImageError: boolean,
     time: number
-  ) {
+  ) => {
     // Clear canvas with white background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -147,85 +166,9 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
       ctx.textAlign = 'center';
       ctx.fillText('MAX', maxPressureSensor.x, maxPressureSensor.y - 42);
     }
-  }
+  }, []);
 
-  // Expose canvas image export function
-  useImperativeHandle(ref, () => ({
-    getCanvasImageBlob: (): Promise<Blob> => {
-      return new Promise((resolve, reject) => {
-        const canvas = canvasRef.current;
-        if (!canvas) {
-          reject(new Error('Canvas not available'));
-          return;
-        }
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Canvas context not available'));
-          return;
-        }
-
-        try {
-          // Temporarily stop animation
-          if (animationRef.current) {
-            cancelAnimationFrame(animationRef.current);
-          }
-
-          // Ensure canvas is fully updated with current data
-          drawCanvas(ctx, canvas, footDataRef.current, footSoleImage, imageLoadError, Date.now());
-
-          // Convert canvas to blob
-          canvas.toBlob((blob) => {
-            if (blob) {
-              // Restart animation
-              const animateLoop = (time: DOMHighResTimeStamp) => {
-                drawCanvas(ctx, canvas, footDataRef.current, footSoleImage, imageLoadError, time);
-                animationRef.current = requestAnimationFrame(animateLoop);
-              };
-              animationRef.current = requestAnimationFrame(animateLoop);
-              
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to create image blob'));
-            }
-          }, 'image/png', 1.0);
-        } catch (error) {
-          reject(error);
-        }
-      });
-    }
-  }), [footSoleImage, imageLoadError]);
-
-  // Separate effect for image loading - only runs when footType changes
-  useEffect(() => {
-    console.log(`Loading foot sole image for ${footType} foot`);
-    
-    const img = new Image();
-    
-    const handleLoad = () => {
-      console.log(`✅ Foot sole image loaded successfully for ${footType} foot`);
-      setFootSoleImage(img);
-      setImageLoadError(false);
-    };
-    
-    const handleError = () => {
-      console.error(`❌ Failed to load foot sole image: /${footType}_sole.png`);
-      setFootSoleImage(null);
-      setImageLoadError(true);
-    };
-    
-    img.onload = handleLoad;
-    img.onerror = handleError;
-    img.src = `/${footType}_sole.png`;
-    
-    // Cleanup function
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [footType]);
-
-  // Animation loop effect - REMOVED footData from dependencies to prevent restart on every update
+  // Animation loop effect - runs when footData, image, or error state changes
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -236,8 +179,7 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
     console.log(`🎨 Starting animation loop for ${footType} foot`);
 
     const animateLoop = (time: DOMHighResTimeStamp) => {
-      // Use footDataRef.current to get the latest data without causing effect restart
-      drawCanvas(ctx, canvas, footDataRef.current, footSoleImage, imageLoadError, time);
+      drawCanvas(ctx, canvas, footData, footSoleImage, imageLoadError, time);
       animationRef.current = requestAnimationFrame(animateLoop);
     };
 
@@ -251,7 +193,7 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
         console.log(`🛑 Animation loop stopped for ${footType} foot`);
       }
     };
-  }, [footSoleImage, imageLoadError, footType]); // drawCanvas removed from dependencies
+  }, [footData, footSoleImage, imageLoadError, footType, drawCanvas]);
 
   const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -261,8 +203,8 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    // Check if mouse is over any sensor - use footDataRef.current for latest data
-    const hoveredSensor = footDataRef.current.sensors.find(sensor => {
+    // Check if mouse is over any sensor
+    const hoveredSensor = footData.sensors.find(sensor => {
       const distance = Math.sqrt((x - sensor.x) ** 2 + (y - sensor.y) ** 2);
       return distance <= 25;
     });
@@ -301,10 +243,10 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
       <div className="absolute top-2 right-2 bg-white bg-opacity-90 rounded-md px-2 py-1 text-xs">
         <div className="flex items-center space-x-1">
           <div className={`w-2 h-2 rounded-full ${
-            footDataRef.current.sensors.some(s => s.value > 0) ? 'bg-green-500' : 'bg-gray-400'
+            footData.sensors.some(s => s.value > 0) ? 'bg-green-500' : 'bg-gray-400'
           }`}></div>
           <span className="text-gray-700">
-            {footDataRef.current.sensors.filter(s => s.value > 0).length}/8 active
+            {footData.sensors.filter(s => s.value > 0).length}/8 active
           </span>
         </div>
         {imageLoadError && (
@@ -332,6 +274,4 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
       )}
     </div>
   );
-});
-
-HeatmapCanvas.displayName = 'HeatmapCanvas';
+};

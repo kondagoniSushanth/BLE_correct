@@ -25,13 +25,12 @@ function App() {
     averagedLeftFootData,
     averagedRightFootData,
     sessionData,
-    liveGraphHistory,
     isRecording,
     parseIncomingData,
     startRecording,
     stopRecording,
     resetAveragedData
-  } = useFootData(appMode);
+  } = useFootData();
 
   // Set up BLE data handler
   useEffect(() => {
@@ -67,7 +66,6 @@ function App() {
         appMode={appMode}
         onAppModeChange={setAppMode}
         sessionData={sessionData}
-        liveGraphHistory={liveGraphHistory}
         isRecording={isRecording}
         onStartRecording={() => startRecording(20000)}
         onStopRecording={stopRecording}

@@ -1,18 +1,18 @@
 import React from 'react';
 import { Download, FileSpreadsheet, Image } from 'lucide-react';
 import { SessionData } from '../types';
-import { exportToExcel } from '../utils/exportUtils';
+import { exportToExcel, exportHeatmapImage } from '../utils/exportUtils';
 
 interface ExportControlsProps {
   sessionData: SessionData[];
+  canvasId: string;
   footType: string;
-  onExportImage: (filename: string) => void;
 }
 
 export const ExportControls: React.FC<ExportControlsProps> = ({
   sessionData,
-  footType,
-  onExportImage
+  canvasId,
+  footType
 }) => {
   const handleExportExcel = () => {
     if (sessionData.length === 0) {
@@ -23,8 +23,7 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
   };
 
   const handleExportImage = () => {
-    const filename = `${footType}_foot_heatmap_${new Date().toISOString().split('T')[0]}.png`;
-    onExportImage(filename);
+    exportHeatmapImage(canvasId, `${footType}_foot_heatmap_${new Date().toISOString().split('T')[0]}.png`);
   };
 
   return (
