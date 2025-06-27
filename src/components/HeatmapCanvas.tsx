@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { FootData, FootType } from '../types';
 import { getPressureColor, getPressureOpacity } from '../utils/colorMapping';
 
@@ -45,91 +45,15 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
     footDataRef.current = footData;
   }, [footData]);
 
-  // Expose canvas image export function
-  useImperativeHandle(ref, () => ({
-    getCanvasImageBlob: (): Promise<Blob> => {
-      return new Promise((resolve, reject) => {
-        const canvas = canvasRef.current;
-        if (!canvas) {
-          reject(new Error('Canvas not available'));
-          return;
-        }
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Canvas context not available'));
-          return;
-        }
-
-        try {
-          // Temporarily stop animation
-          if (animationRef.current) {
-            cancelAnimationFrame(animationRef.current);
-          }
-
-          // Ensure canvas is fully updated with current data
-          drawCanvas(ctx, canvas, footDataRef.current, footSoleImage, imageLoadError, Date.now());
-
-          // Convert canvas to blob
-          canvas.toBlob((blob) => {
-            if (blob) {
-              // Restart animation
-              const animateLoop = (time: DOMHighResTimeStamp) => {
-                drawCanvas(ctx, canvas, footDataRef.current, footSoleImage, imageLoadError, time);
-                animationRef.current = requestAnimationFrame(animateLoop);
-              };
-              animationRef.current = requestAnimationFrame(animateLoop);
-              
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to create image blob'));
-            }
-          }, 'image/png', 1.0);
-        } catch (error) {
-          reject(error);
-        }
-      });
-    }
-  }), [footSoleImage, imageLoadError, drawCanvas]);
-
-  // Separate effect for image loading - only runs when footType changes
-  useEffect(() => {
-    console.log(`Loading foot sole image for ${footType} foot`);
-    
-    const img = new Image();
-    
-    const handleLoad = () => {
-      console.log(`✅ Foot sole image loaded successfully for ${footType} foot`);
-      setFootSoleImage(img);
-      setImageLoadError(false);
-    };
-    
-    const handleError = () => {
-      console.error(`❌ Failed to load foot sole image: /${footType}_sole.png`);
-      setFootSoleImage(null);
-      setImageLoadError(true);
-    };
-    
-    img.onload = handleLoad;
-    img.onerror = handleError;
-    img.src = `/${footType}_sole.png`;
-    
-    // Cleanup function
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [footType]);
-
-  // Drawing function - now includes footData, footSoleImage, and imageLoadError in dependencies
-  const drawCanvas = useCallback((
+  // Drawing function - now as a regular function declaration to avoid initialization issues
+  function drawCanvas(
     ctx: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
     currentFootData: FootData,
     image: HTMLImageElement | null,
     hasImageError: boolean,
     time: number
-  ) => {
+  ) {
     // Clear canvas with white background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -223,7 +147,83 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
       ctx.textAlign = 'center';
       ctx.fillText('MAX', maxPressureSensor.x, maxPressureSensor.y - 42);
     }
-  }, []);
+  }
+
+  // Expose canvas image export function
+  useImperativeHandle(ref, () => ({
+    getCanvasImageBlob: (): Promise<Blob> => {
+      return new Promise((resolve, reject) => {
+        const canvas = canvasRef.current;
+        if (!canvas) {
+          reject(new Error('Canvas not available'));
+          return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
+        }
+
+        try {
+          // Temporarily stop animation
+          if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+          }
+
+          // Ensure canvas is fully updated with current data
+          drawCanvas(ctx, canvas, footDataRef.current, footSoleImage, imageLoadError, Date.now());
+
+          // Convert canvas to blob
+          canvas.toBlob((blob) => {
+            if (blob) {
+              // Restart animation
+              const animateLoop = (time: DOMHighResTimeStamp) => {
+                drawCanvas(ctx, canvas, footDataRef.current, footSoleImage, imageLoadError, time);
+                animationRef.current = requestAnimationFrame(animateLoop);
+              };
+              animationRef.current = requestAnimationFrame(animateLoop);
+              
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create image blob'));
+            }
+          }, 'image/png', 1.0);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+  }), [footSoleImage, imageLoadError]);
+
+  // Separate effect for image loading - only runs when footType changes
+  useEffect(() => {
+    console.log(`Loading foot sole image for ${footType} foot`);
+    
+    const img = new Image();
+    
+    const handleLoad = () => {
+      console.log(`✅ Foot sole image loaded successfully for ${footType} foot`);
+      setFootSoleImage(img);
+      setImageLoadError(false);
+    };
+    
+    const handleError = () => {
+      console.error(`❌ Failed to load foot sole image: /${footType}_sole.png`);
+      setFootSoleImage(null);
+      setImageLoadError(true);
+    };
+    
+    img.onload = handleLoad;
+    img.onerror = handleError;
+    img.src = `/${footType}_sole.png`;
+    
+    // Cleanup function
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [footType]);
 
   // Animation loop effect - REMOVED footData from dependencies to prevent restart on every update
   useEffect(() => {
@@ -251,7 +251,7 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
         console.log(`🛑 Animation loop stopped for ${footType} foot`);
       }
     };
-  }, [footSoleImage, imageLoadError, footType, drawCanvas]); // footData removed from dependencies
+  }, [footSoleImage, imageLoadError, footType]); // drawCanvas removed from dependencies
 
   const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
