@@ -28,6 +28,7 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
+  const footDataRef = useRef<FootData>(footData); // Store latest footData without triggering re-renders
   const [footSoleImage, setFootSoleImage] = useState<HTMLImageElement | null>(null);
   const [imageLoadError, setImageLoadError] = useState<boolean>(false);
   const [tooltip, setTooltip] = useState<TooltipData>({
@@ -38,6 +39,11 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
     pressure: 0,
     timestamp: new Date()
   });
+
+  // Update footDataRef whenever footData changes (without affecting animation loop)
+  useEffect(() => {
+    footDataRef.current = footData;
+  }, [footData]);
 
   // Expose canvas image export function
   useImperativeHandle(ref, () => ({
@@ -62,14 +68,14 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
           }
 
           // Ensure canvas is fully updated with current data
-          drawCanvas(ctx, canvas, footData, footSoleImage, imageLoadError, Date.now());
+          drawCanvas(ctx, canvas, footDataRef.current, footSoleImage, imageLoadError, Date.now());
 
           // Convert canvas to blob
           canvas.toBlob((blob) => {
             if (blob) {
               // Restart animation
               const animateLoop = (time: DOMHighResTimeStamp) => {
-                drawCanvas(ctx, canvas, footData, footSoleImage, imageLoadError, time);
+                drawCanvas(ctx, canvas, footDataRef.current, footSoleImage, imageLoadError, time);
                 animationRef.current = requestAnimationFrame(animateLoop);
               };
               animationRef.current = requestAnimationFrame(animateLoop);
@@ -84,7 +90,7 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
         }
       });
     }
-  }), [footData, footSoleImage, imageLoadError]);
+  }), [footSoleImage, imageLoadError, drawCanvas]);
 
   // Separate effect for image loading - only runs when footType changes
   useEffect(() => {
@@ -115,7 +121,7 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
     };
   }, [footType]);
 
-  // Drawing function - separated from animation loop
+  // Drawing function - now includes footData, footSoleImage, and imageLoadError in dependencies
   const drawCanvas = useCallback((
     ctx: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
@@ -219,7 +225,7 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
     }
   }, []);
 
-  // Animation loop effect - runs when footData, image, or error state changes
+  // Animation loop effect - REMOVED footData from dependencies to prevent restart on every update
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -230,7 +236,8 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
     console.log(`🎨 Starting animation loop for ${footType} foot`);
 
     const animateLoop = (time: DOMHighResTimeStamp) => {
-      drawCanvas(ctx, canvas, footData, footSoleImage, imageLoadError, time);
+      // Use footDataRef.current to get the latest data without causing effect restart
+      drawCanvas(ctx, canvas, footDataRef.current, footSoleImage, imageLoadError, time);
       animationRef.current = requestAnimationFrame(animateLoop);
     };
 
@@ -244,7 +251,7 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
         console.log(`🛑 Animation loop stopped for ${footType} foot`);
       }
     };
-  }, [footData, footSoleImage, imageLoadError, footType, drawCanvas]);
+  }, [footSoleImage, imageLoadError, footType, drawCanvas]); // footData removed from dependencies
 
   const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -254,8 +261,8 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    // Check if mouse is over any sensor
-    const hoveredSensor = footData.sensors.find(sensor => {
+    // Check if mouse is over any sensor - use footDataRef.current for latest data
+    const hoveredSensor = footDataRef.current.sensors.find(sensor => {
       const distance = Math.sqrt((x - sensor.x) ** 2 + (y - sensor.y) ** 2);
       return distance <= 25;
     });
@@ -294,10 +301,10 @@ export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
       <div className="absolute top-2 right-2 bg-white bg-opacity-90 rounded-md px-2 py-1 text-xs">
         <div className="flex items-center space-x-1">
           <div className={`w-2 h-2 rounded-full ${
-            footData.sensors.some(s => s.value > 0) ? 'bg-green-500' : 'bg-gray-400'
+            footDataRef.current.sensors.some(s => s.value > 0) ? 'bg-green-500' : 'bg-gray-400'
           }`}></div>
           <span className="text-gray-700">
-            {footData.sensors.filter(s => s.value > 0).length}/8 active
+            {footDataRef.current.sensors.filter(s => s.value > 0).length}/8 active
           </span>
         </div>
         {imageLoadError && (
