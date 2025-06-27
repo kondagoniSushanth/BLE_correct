@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { FootData, FootType } from '../types';
 import { getPressureColor, getPressureOpacity } from '../utils/colorMapping';
 
@@ -17,11 +17,15 @@ interface TooltipData {
   timestamp: Date;
 }
 
-export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
+export interface HeatmapCanvasRef {
+  getCanvasImageBlob: () => Promise<Blob>;
+}
+
+export const HeatmapCanvas = forwardRef<HeatmapCanvasRef, HeatmapCanvasProps>(({
   footData,
   footType,
   canvasId
-}) => {
+}, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const [footSoleImage, setFootSoleImage] = useState<HTMLImageElement | null>(null);
@@ -34,6 +38,53 @@ export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
     pressure: 0,
     timestamp: new Date()
   });
+
+  // Expose canvas image export function
+  useImperativeHandle(ref, () => ({
+    getCanvasImageBlob: (): Promise<Blob> => {
+      return new Promise((resolve, reject) => {
+        const canvas = canvasRef.current;
+        if (!canvas) {
+          reject(new Error('Canvas not available'));
+          return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
+        }
+
+        try {
+          // Temporarily stop animation
+          if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+          }
+
+          // Ensure canvas is fully updated with current data
+          drawCanvas(ctx, canvas, footData, footSoleImage, imageLoadError, Date.now());
+
+          // Convert canvas to blob
+          canvas.toBlob((blob) => {
+            if (blob) {
+              // Restart animation
+              const animateLoop = (time: DOMHighResTimeStamp) => {
+                drawCanvas(ctx, canvas, footData, footSoleImage, imageLoadError, time);
+                animationRef.current = requestAnimationFrame(animateLoop);
+              };
+              animationRef.current = requestAnimationFrame(animateLoop);
+              
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create image blob'));
+            }
+          }, 'image/png', 1.0);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+  }), [footData, footSoleImage, imageLoadError]);
 
   // Separate effect for image loading - only runs when footType changes
   useEffect(() => {
@@ -274,4 +325,6 @@ export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
       )}
     </div>
   );
-};
+});
+
+HeatmapCanvas.displayName = 'HeatmapCanvas';
