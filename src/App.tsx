@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FootType, ViewMode, AppMode } from './types';
+import { LandingPage } from './components/LandingPage';
 import { Navigation } from './components/Navigation';
 import { BLEControls } from './components/BLEControls';
 import { FootPressureView } from './components/FootPressureView';
@@ -7,6 +8,7 @@ import { useBLE } from './hooks/useBLE';
 import { useFootData } from './hooks/useFootData';
 
 function App() {
+  const [showMainApp, setShowMainApp] = useState(false);
   const [activeTab, setActiveTab] = useState<FootType>('left');
   const [viewMode, setViewMode] = useState<ViewMode>('heatmap');
   const [appMode, setAppMode] = useState<AppMode>('live');
@@ -32,11 +34,24 @@ function App() {
     resetAveragedData
   } = useFootData();
 
-  // Set up BLE data handler
+  // Set up BLE data handler only when main app is shown
   useEffect(() => {
-    setDataHandler(parseIncomingData);
-  }, [setDataHandler, parseIncomingData]);
+    if (showMainApp) {
+      setDataHandler(parseIncomingData);
+    }
+  }, [setDataHandler, parseIncomingData, showMainApp]);
 
+  // Handle navigation from landing page to main app
+  const handleGetStarted = () => {
+    setShowMainApp(true);
+  };
+
+  // Show landing page if main app is not active
+  if (!showMainApp) {
+    return <LandingPage onGetStarted={handleGetStarted} />;
+  }
+
+  // Main application content
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
