@@ -37,14 +37,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           </p>
         </div>
 
-        {/* Logo Section */}
-        <div className="mb-12">
-          <div className="w-80 h-80 flex items-center justify-center bg-white rounded-3xl shadow-2xl border border-gray-100 hover:shadow-3xl transition-all duration-500 transform hover:scale-105">
+        {/* Logo Section with Company Name */}
+        <div className="mb-12 text-center">
+          <div className="w-80 h-80 flex items-center justify-center bg-white rounded-3xl shadow-2xl border border-gray-100 hover:shadow-3xl transition-all duration-500 transform hover:scale-105 mb-6">
             <img 
               src="/generated-image2 copy.png" 
               alt="FootRYX Logo" 
               className="w-64 h-64 object-contain"
             />
+          </div>
+          
+          {/* Company Name */}
+          <div className="text-4xl md:text-5xl font-bold tracking-wide">
+            <span className="text-red-500">Foot</span>
+            <span className="text-green-600">RYX</span>
+          </div>
+          <div className="text-lg text-gray-600 mt-2 font-medium">
+            Healthcare Solutions
           </div>
         </div>
 
