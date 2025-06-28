@@ -15,7 +15,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           {/* Logo Image */}
           <div className="w-64 h-64 flex items-center justify-center">
             <img 
-              src="/generated-image.png" 
+              src="/footryx_healthcare_pvt_ltd_logo.jpg" 
               alt="FootRYX Logo" 
               className="w-full h-full object-contain"
             />
