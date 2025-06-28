@@ -50,7 +50,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           {/* Company Name */}
           <div className="text-4xl md:text-5xl font-bold tracking-wide">
             <span className="text-red-500">FOOT</span>
-            <span className="text-green-600">RYX</span>
+            <span className="text-green-800">RYX</span>
           </div>
           <div className="text-lg text-gray-600 mt-2 font-medium">
             Healthcare Solutions
