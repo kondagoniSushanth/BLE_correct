@@ -49,9 +49,49 @@ function App() {
   // Main application content
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Logo and Company Header - At the very top */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              {/* FootRYX Logo */}
+              <div className="flex-shrink-0">
+                <img 
+                  src="/generated-image2 copy copy.png" 
+                  alt="FootRYX Logo" 
+                  className="w-12 h-12 object-contain"
+                />
+              </div>
+              
+              {/* Company Name and Tagline */}
+              <div>
+                <div className="text-2xl font-bold tracking-wide">
+                  <span className="text-red-500">FOOT</span>
+                  <span className="text-green-800">RYX</span>
+                  <span className="text-gray-600 ml-2 text-lg font-medium">Healthcare</span>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Real-time plantar pressure analysis system
+                </p>
+              </div>
+            </div>
+            
+            {/* Status Indicator */}
+            <div className="flex items-center space-x-2">
+              <div className={`w-3 h-3 rounded-full ${
+                bleDevice.connected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+              }`}></div>
+              <span className="text-sm text-gray-600 font-medium">
+                {bleDevice.connected ? 'Connected' : 'Disconnected'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
       
-      {/* BLE Controls - Fixed at top */}
+      {/* BLE Controls - Unchanged to preserve functionality */}
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="max-w-7xl mx-auto">
           <BLEControls
