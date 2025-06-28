@@ -72,14 +72,33 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className={`text-3xl font-bold ${footType === 'left' ? 'text-red-900' : 'text-green-900'} mb-2`}>
-                {footType === 'left' ? 'Left' : 'Right'} Foot Pressure Map
-              </h1>
-              <p className="text-gray-600">
-                Real-time plantar pressure visualization from ESP32 BLE sensors
-              </p>
+            <div className="flex items-center space-x-4">
+              {/* FootRYX Logo */}
+              <div className="flex-shrink-0">
+                <img 
+                  src="/generated-image2 copy copy.png" 
+                  alt="FootRYX Logo" 
+                  className="w-16 h-16 object-contain"
+                />
+              </div>
+              
+              {/* Title and Description */}
+              <div>
+                <h1 className={`text-3xl font-bold ${footType === 'left' ? 'text-red-900' : 'text-green-900'} mb-2`}>
+                  {footType === 'left' ? 'Left' : 'Right'} Foot Pressure Map
+                </h1>
+                <p className="text-gray-600">
+                  Real-time plantar pressure visualization from ESP32 BLE sensors
+                </p>
+                {/* Company Name */}
+                <div className="text-sm font-medium mt-1">
+                  <span className="text-red-500">FOOT</span>
+                  <span className="text-green-800">RYX</span>
+                  <span className="text-gray-600 ml-1">Healthcare</span>
+                </div>
+              </div>
             </div>
+            
             <div className="flex items-center space-x-3">
               <div className={`px-3 py-1 rounded-full text-sm font-medium ${
                 appMode === 'live' 
