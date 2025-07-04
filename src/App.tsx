@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Home } from 'lucide-react';
 import { FootType, ViewMode, AppMode } from './types';
 import { LandingPage } from './components/LandingPage';
 import { Navigation } from './components/Navigation';
@@ -54,6 +55,16 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
+              {/* Back to Home Button */}
+              <button
+                onClick={() => setShowMainApp(false)}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                title="Back to Home"
+              >
+                <Home className="h-4 w-4" />
+                <span className="font-medium">Back to Home</span>
+              </button>
+              
               {/* FootRYX Logo */}
               <div className="flex-shrink-0">
                 <img 
