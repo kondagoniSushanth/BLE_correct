@@ -55,16 +55,6 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              {/* Back to Home Button */}
-              <button
-                onClick={() => setShowMainApp(false)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                title="Back to Home"
-              >
-                <Home className="h-4 w-4" />
-                <span className="font-medium">Back to Home</span>
-              </button>
-              
               {/* FootRYX Logo */}
               <div className="flex-shrink-0">
                 <img 
@@ -87,8 +77,17 @@ function App() {
               </div>
             </div>
             
-            {/* Status Indicator */}
+            {/* Status Indicator with Home Button */}
             <div className="flex items-center space-x-2">
+              {/* Home Button - Icon Only */}
+              <button
+                onClick={() => setShowMainApp(false)}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors duration-200"
+                title="Back to Home"
+              >
+                <Home className="h-5 w-5" />
+              </button>
+              
               <div className={`w-3 h-3 rounded-full ${
                 bleDevice.connected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
               }`}></div>
