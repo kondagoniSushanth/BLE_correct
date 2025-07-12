@@ -55,7 +55,7 @@ export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
     
     img.onload = handleLoad;
     img.onerror = handleError;
-    img.src = `/great_toe.png`;
+    img.src = `/Footryx_FSR.png`;
     
     // Cleanup function
     return () => {
