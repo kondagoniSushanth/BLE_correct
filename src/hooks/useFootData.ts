@@ -4,7 +4,7 @@ import { FootData, SensorData, SessionData, FootType } from '../types';
 const SENSOR_POSITIONS = {
   left: [
     { x: 81, y: 58 },   // P1
-   { x: 92, y: 125 },  // P2
+    { x: 92, y: 125 },  // P2
     { x: 210, y: 190 },  // P3
     { x: 110, y: 230 },  // P4
     { x: 190, y: 245 },  // P5
