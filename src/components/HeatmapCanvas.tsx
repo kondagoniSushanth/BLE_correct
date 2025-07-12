@@ -55,7 +55,7 @@ export const HeatmapCanvas: React.FC<HeatmapCanvasProps> = ({
     
     img.onload = handleLoad;
     img.onerror = handleError;
-    img.src = footType === 'left' ? '/Footryx_FSR_Left.png' : '/Footryx_FSR.png';
+    img.src = `/Footryx_FSR.png`;
     
     // Cleanup function
     return () => {
