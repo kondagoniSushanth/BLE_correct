@@ -28,6 +28,7 @@ function App() {
     averagedLeftFootData,
     averagedRightFootData,
     sessionData,
+    graphDataBuffer,
     isRecording,
     parseIncomingData,
     startRecording,
@@ -126,6 +127,7 @@ function App() {
         appMode={appMode}
         onAppModeChange={setAppMode}
         sessionData={sessionData}
+        graphDataBuffer={graphDataBuffer}
         isRecording={isRecording}
         onStartRecording={() => startRecording(20000)}
         onStopRecording={stopRecording}

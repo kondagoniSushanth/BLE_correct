@@ -25,6 +25,10 @@ const SENSOR_POSITIONS = {
 };
 
 export const useFootData = () => {
+  // Refs to store latest sensor values for graph buffer
+  const latestLeftValues = useRef<number[]>(Array(8).fill(0));
+  const latestRightValues = useRef<number[]>(Array(8).fill(0));
+
   const [leftFootData, setLeftFootData] = useState<FootData>({
     sensors: SENSOR_POSITIONS.left.map((pos, i) => ({
       id: `L${i + 1}`,
@@ -50,6 +54,7 @@ export const useFootData = () => {
   const [averagedLeftFootData, setAveragedLeftFootData] = useState<FootData | null>(null);
   const [averagedRightFootData, setAveragedRightFootData] = useState<FootData | null>(null);
   const [sessionData, setSessionData] = useState<SessionData[]>([]);
+  const [graphDataBuffer, setGraphDataBuffer] = useState<SessionData[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const recordingTimer = useRef<NodeJS.Timeout | null>(null);
   const recordingData = useRef<SessionData[]>([]);
@@ -60,6 +65,13 @@ export const useFootData = () => {
     if (values.length !== 8) {
       console.warn(`❌ Invalid sensor data length for ${foot} foot: expected 8, got ${values.length}. Values:`, values);
       return;
+    }
+
+    // Update latest values refs for graph buffer
+    if (foot === 'left') {
+      latestLeftValues.current = [...values];
+    } else {
+      latestRightValues.current = [...values];
     }
 
     const timestamp = new Date();
@@ -116,6 +128,8 @@ export const useFootData = () => {
     const lines = data.trim().split('\n');
     console.log(`📝 Split into ${lines.length} lines:`, lines);
     
+    let dataUpdated = false;
+
     lines.forEach((line, lineIndex) => {
       const trimmedLine = line.trim();
       console.log(`🔍 Processing line ${lineIndex + 1}: "${trimmedLine}"`);
@@ -135,6 +149,7 @@ export const useFootData = () => {
         if (values.length === 8) {
           console.log(`✅ Valid LEFT foot data - calling updateFootData`);
           updateFootData('left', values);
+          dataUpdated = true;
         } else {
           console.warn(`❌ Invalid LEFT foot data format. Expected 8 values, got ${values.length}. Raw string: "${valuesStr}", Parsed values:`, values);
         }
@@ -153,6 +168,7 @@ export const useFootData = () => {
         if (values.length === 8) {
           console.log(`✅ Valid RIGHT foot data - calling updateFootData`);
           updateFootData('right', values);
+          dataUpdated = true;
         } else {
           console.warn(`❌ Invalid RIGHT foot data format. Expected 8 values, got ${values.length}. Raw string: "${valuesStr}", Parsed values:`, values);
         }
@@ -161,6 +177,25 @@ export const useFootData = () => {
       }
     });
     
+    // Update graph data buffer with latest values from both feet
+    if (dataUpdated) {
+      const timestamp = new Date();
+      const graphEntry: SessionData = {
+        timestamp,
+        leftFoot: [...latestLeftValues.current],
+        rightFoot: [...latestRightValues.current]
+      };
+      
+      setGraphDataBuffer(prev => {
+        const updated = [...prev, graphEntry];
+        // Keep only last 100 entries for performance
+        if (updated.length > 100) {
+          return updated.slice(-100);
+        }
+        return updated;
+      });
+    }
+
     console.log(`🏁 parseIncomingData processing completed`);
   }, [updateFootData]);
 
@@ -271,7 +306,10 @@ export const useFootData = () => {
     setAveragedLeftFootData(null);
     setAveragedRightFootData(null);
     setSessionData([]);
+    setGraphDataBuffer([]);
     recordingData.current = [];
+    latestLeftValues.current = Array(8).fill(0);
+    latestRightValues.current = Array(8).fill(0);
     
     window.dispatchEvent(new CustomEvent('ble-data', { 
       detail: { data: `🔄 Averaged data reset` } 
@@ -286,6 +324,7 @@ export const useFootData = () => {
     averagedLeftFootData,
     averagedRightFootData,
     sessionData,
+    graphDataBuffer,
     isRecording,
     parseIncomingData,
     startRecording,

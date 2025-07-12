@@ -20,6 +20,7 @@ interface FootPressureViewProps {
   appMode: AppMode;
   onAppModeChange: (mode: AppMode) => void;
   sessionData: SessionData[];
+  graphDataBuffer: SessionData[];
   isRecording: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
@@ -38,6 +39,7 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
   appMode,
   onAppModeChange,
   sessionData,
+  graphDataBuffer,
   isRecording,
   onStartRecording,
   onStopRecording,
@@ -67,6 +69,14 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
   const currentFootData = getCurrentFootData();
   const hasAveragedData = (footType === 'left' ? averagedLeftFootData : averagedRightFootData) !== null;
 
+  // Determine which data to use for the graph based on app mode
+  const getGraphData = (): SessionData[] => {
+    if (appMode === 'live') {
+      return graphDataBuffer;
+    } else {
+      return sessionData;
+    }
+  };
   return (
     <div className={`min-h-screen ${footType === 'left' ? 'bg-red-50' : 'bg-green-50'} p-6`}>
       <div className="max-w-7xl mx-auto">
@@ -142,7 +152,7 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
               )}
 
               {viewMode === 'graph' && (
-                <GraphView sessionData={sessionData} footType={footType} />
+                <GraphView sessionData={getGraphData()} footType={footType} />
               )}
             </div>
 
