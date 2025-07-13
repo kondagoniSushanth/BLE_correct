@@ -1,6 +1,6 @@
 export const getPressureColor = (pressure: number): string => {
-  // Normalize pressure to 0-1 range (0-225 kPa)
-  const normalized = Math.min(Math.max(pressure / 225, 0), 1);
+  // Normalize pressure to 0-1 range (0-800 kPa)
+  const normalized = Math.min(Math.max(pressure / 800, 0), 1);
   
   // Enhanced color gradient with more vibrant and saturated colors
   const colors = [
@@ -14,7 +14,7 @@ export const getPressureColor = (pressure: number): string => {
     { r: 255, g: 140, b: 0 },     // Dark orange - more intense
     { r: 255, g: 69, b: 0 },      // Red orange - more saturated
     { r: 220, g: 20, b: 60 },     // Crimson - more intense
-    { r: 139, g: 0, b: 0 }        // Dark red (225+ kPa) - maximum intensity
+    { r: 139, g: 0, b: 0 }        // Dark red (800+ kPa) - maximum intensity
   ];
   
   const index = normalized * (colors.length - 1);
@@ -41,7 +41,7 @@ export const getPressureOpacity = (pressure: number): number => {
   // Enhanced opacity calculation for better visual contrast
   const baseOpacity = 0.3; // Minimum opacity for visibility
   const maxOpacity = 0.95;  // Maximum opacity for high pressure
-  const normalized = Math.min(Math.max(pressure / 225, 0), 1);
+  const normalized = Math.min(Math.max(pressure / 800, 0), 1);
   
   // Use exponential curve for better visual distinction
   const exponentialNormalized = Math.pow(normalized, 0.7);
