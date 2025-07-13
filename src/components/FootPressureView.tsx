@@ -8,6 +8,7 @@ import { PressureLegend } from './PressureLegend';
 import { ViewControls } from './ViewControls';
 import { ModeControls } from './ModeControls';
 import { ExportControls } from './ExportControls';
+import { FHRatioDisplay } from './FHRatioDisplay';
 
 interface FootPressureViewProps {
   leftFootData: FootData;
@@ -126,6 +127,10 @@ export const FootPressureView: React.FC<FootPressureViewProps> = ({
             <ExportControls
               sessionData={sessionData}
               canvasId={canvasId}
+              footType={footType}
+            />
+            <FHRatioDisplay
+              footData={currentFootData}
               footType={footType}
             />
             {viewMode === 'heatmap' && <PressureLegend />}
