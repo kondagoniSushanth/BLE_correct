@@ -3,14 +3,14 @@ import { FootData, SensorData, SessionData, FootType } from '../types';
 
 const SENSOR_POSITIONS = {
   left: [
-  { x: 169, y: 58 },   // P1
-  { x: 158, y: 125 },  // P2
-  { x: 87,  y: 133 },  // P3
-  { x: 50,  y: 177 },  // P4
-  { x: 63,  y: 235 },  // P5
-  { x: 146, y: 285 },  // P6
-  { x: 80,  y: 288 },  // P7
-  { x: 129, y: 345 }   // P8
+  { x: 189, y: 58 },   // P1
+  { x: 178, y: 125 },  // P2
+  { x: 157,  y: 133 },  // P3
+  { x: 90,  y: 177 },  // P4
+  { x: 83,  y: 235 },  // P5
+  { x: 176, y: 285 },  // P6
+  { x: 120,  y: 288 },  // P7
+  { x: 149, y: 345 }   // P8
   ],
   right: [
     { x: 81,  y: 58 },   // P1
