@@ -72,9 +72,6 @@ export const FHRatioDisplay: React.FC<FHRatioDisplayProps> = ({
         <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
           <div>
             <div className="text-sm font-medium text-blue-900">Forefoot (F)</div>
-            <div className="text-xs text-blue-700">
-              {footType === 'left' ? 'L2 + L3 + L4' : 'R2 + R3 + R4'}
-            </div>
           </div>
           <div className="text-lg font-bold text-blue-600">
             {forefoot.toFixed(1)} kPa
@@ -84,9 +81,6 @@ export const FHRatioDisplay: React.FC<FHRatioDisplayProps> = ({
         <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
           <div>
             <div className="text-sm font-medium text-green-900">Heel (H)</div>
-            <div className="text-xs text-green-700">
-              {footType === 'left' ? 'L6 + L7 + L8' : 'R6 + R7 + R8'}
-            </div>
           </div>
           <div className="text-lg font-bold text-green-600">
             {heel.toFixed(1)} kPa
