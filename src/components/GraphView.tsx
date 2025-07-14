@@ -29,7 +29,7 @@ export const GraphView: React.FC<GraphViewProps> = ({ sessionData, footType }) =
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Pressure Over Time</h3>
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} key={chartData.length}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="time" />
             <YAxis label={{ value: 'Pressure (kPa)', angle: -90, position: 'insideLeft' }} />
